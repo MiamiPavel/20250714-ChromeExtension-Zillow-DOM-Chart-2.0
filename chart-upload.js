@@ -60,6 +60,9 @@ window.addEventListener('load', () => {
     hide('uploadSection');
     hide('exportHtmlBtn');
     hide('publishGhPagesBtn');
+    if (typeof window._injectedZillowSearchUrl === 'string' && window._injectedZillowSearchUrl) {
+      window.zillowSearchUrl = window._injectedZillowSearchUrl;
+    }
     loadFileContent(window._injectedCSV);
     return;
   }
@@ -67,6 +70,9 @@ window.addEventListener('load', () => {
   if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
     chrome.runtime.sendMessage({ action: 'getChartData' }, (response) => {
       if (response && response.data) {
+        if (typeof response.searchUrl === 'string' && response.searchUrl) {
+          window.zillowSearchUrl = response.searchUrl;
+        }
         loadFileContent(response.data);
       }
     });

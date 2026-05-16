@@ -46,19 +46,24 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 });
 
 let pendingChartData = null;
+// Most recent Zillow search URL we kicked a scrape against. The chart tab reads
+// this back via getChartData so it can render it as "Zillow Search URL" in the
+// chart header and bake it into the published export.
+let lastSearchUrl = null;
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'createChartTab') {
-    pendingChartData = message.data;
+    pendingChartData = { data: message.data, searchUrl: lastSearchUrl };
     chrome.tabs.create({ url: chrome.runtime.getURL("chart.html") });
   }
-  
+
   if (message.action === 'getChartData') {
-    sendResponse({data: pendingChartData});
+    sendResponse(pendingChartData || { data: null, searchUrl: null });
     pendingChartData = null; // Clear after use
   }
 
   if (message.action === 'START_SCRAPE') {
+    lastSearchUrl = message.url;
     startScraping(message.url);
   }
 

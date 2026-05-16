@@ -864,6 +864,9 @@ window.addEventListener('DOMContentLoaded', () => {
       originalData = result;
       // Note: We do NOT add listeners here anymore to avoid duplicates
     }
+    // Show the "Zillow Search URL" banner if we know what was scraped.
+    // chart-upload.js sets window.zillowSearchUrl before invoking us.
+    updateZillowSearchUrlSection();
     return result;
   };
 
@@ -936,6 +939,20 @@ function escapeHtml(s) {
     .replace(/'/g, '&#39;');
 }
 
+function updateZillowSearchUrlSection() {
+  const section = document.getElementById('zillowSearchUrlSection');
+  const link = document.getElementById('zillowSearchUrlLink');
+  if (!section || !link) return;
+  const safe = safeHttpsUrl(window.zillowSearchUrl);
+  if (safe) {
+    link.href = safe;
+    link.textContent = safe;
+    section.style.display = '';
+  } else {
+    section.style.display = 'none';
+  }
+}
+
 async function generateSelfContainedChartHtml(csvText) {
   if (!csvText) throw new Error('No CSV data to export.');
   const fetched = await Promise.all(
@@ -950,6 +967,12 @@ async function generateSelfContainedChartHtml(csvText) {
   // a CSV cell containing the literal "</script>" would close the inline script
   // and break the export (and could inject HTML).
   const safeCsv = escapeForScriptTag(JSON.stringify(csvText));
+  // Bake the Zillow search URL into the export so the published chart shows
+  // "Zillow Search URL: …" at the top. Omit the line entirely when unknown
+  // (manual CSV upload, no scrape context).
+  const safeSearchUrl = (typeof window.zillowSearchUrl === 'string' && window.zillowSearchUrl)
+    ? escapeForScriptTag(JSON.stringify(window.zillowSearchUrl))
+    : null;
   const generatedAt = new Date().toISOString();
   return `<!DOCTYPE html>
 <html lang="en">
@@ -976,6 +999,10 @@ ${get('css')}
           <span id="uploadMsg"></span>
         </div>
       </div>
+      <div id="zillowSearchUrlSection" style="display:none; margin: 0.25rem 0 0.75rem 0; padding: 0.5rem 0.75rem; background: #f1f5f9; border-radius: 6px; font-size: 0.9rem;">
+        <span style="color: #475569; font-weight: 500;">Zillow Search URL:</span>
+        <a id="zillowSearchUrlLink" href="" target="_blank" rel="noopener" style="color: #2563eb; word-break: break-all; margin-left: 0.5rem;"></a>
+      </div>
       <div id="filterSection" style="display: flex; gap: 1.5rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap;">
         <label for="minDaysInput">Min Days on Market:</label>
         <input type="number" id="minDaysInput" min="0" value="0" style="width: 80px; margin-right: 1.5rem;" />
@@ -993,7 +1020,7 @@ ${get('css')}
       </div>
     </div>
   </div>
-  <script>window._injectedCSV = ${safeCsv};</script>
+  <script>window._injectedCSV = ${safeCsv};${safeSearchUrl ? ` window._injectedZillowSearchUrl = ${safeSearchUrl};` : ''}</script>
   <script>${escapeForScriptTag(get('chartLib'))}</script>
   <script>${escapeForScriptTag(get('hammer'))}</script>
   <script>${escapeForScriptTag(get('adapter'))}</script>
