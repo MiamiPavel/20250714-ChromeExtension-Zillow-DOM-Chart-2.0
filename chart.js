@@ -776,15 +776,50 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   // Publish to GitHub Pages — commits the same self-contained HTML to a configured repo.
+  // After the first successful publish the settings (PAT, owner, repo, branch, prefix)
+  // are cached in chrome.storage.local. Subsequent clicks skip the modal entirely and
+  // publish in one click. Shift+click forces the modal open if you need to change settings.
   const publishBtn = document.getElementById('publishGhPagesBtn');
   if (publishBtn) {
-    publishBtn.addEventListener('click', async () => {
+    publishBtn.addEventListener('click', async (e) => {
       const csv = window.uploadedFileContent;
       if (!csv) {
         alert('Please upload a CSV file before publishing.');
         return;
       }
       const cfg = await loadGhConfig();
+      const forceModal = e.shiftKey;
+      const isConfigured = !!(cfg && cfg.ghToken && cfg.ghOwner && cfg.ghRepo);
+
+      if (isConfigured && !forceModal) {
+        // One-click publish path: use cached settings, auto-generate filename, no modal.
+        const oldLabel = publishBtn.textContent;
+        try {
+          publishBtn.disabled = true;
+          publishBtn.textContent = 'Publishing…';
+          const html = await generateSelfContainedChartHtml(csv);
+          const result = await publishHtmlToGitHubPages({
+            token: cfg.ghToken,
+            owner: cfg.ghOwner,
+            repo: cfg.ghRepo,
+            branch: cfg.ghBranch || 'main',
+            pathPrefix: cfg.ghPathPrefix || 'charts',
+            filename: timestampFilename('chart', 'html'),
+            html
+          });
+          openGhResultModal(result);
+        } catch (err) {
+          alert(
+            'Publish failed: ' + (err && err.message ? err.message : err) +
+            '\n\nShift+click the Publish button to re-open the settings modal.'
+          );
+        } finally {
+          publishBtn.disabled = false;
+          publishBtn.textContent = oldLabel;
+        }
+        return;
+      }
+
       openGhSettingsModal({
         initial: cfg,
         onSubmit: async (values, setStatus, closeModal) => {
@@ -1153,9 +1188,11 @@ function openGhSettingsModal({ initial, onSubmit, onCancel } = {}) {
       <h2 id="gh-modal-title">Publish to GitHub Pages</h2>
       <p class="gh-hint">
         Commits a self-contained chart HTML file to your GitHub repo so anyone with the URL can view it.
-        You need a <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">fine-grained personal access token</a>
-        with <code>Contents: Read and write</code> on the target repo, and Pages enabled in repo Settings &raquo; Pages.
-        The token is stored in <code>chrome.storage.sync</code>.
+        Quickest token: run <code>gh auth token</code> in a terminal and paste the result. Or mint a
+        <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">fine-grained PAT</a>
+        with <code>Contents: Read and write</code> on the target repo. Pages must be enabled in repo Settings &raquo; Pages.
+        Settings cache in <code>chrome.storage.local</code> (per-device). After you save once, future Publish
+        clicks skip this modal — Shift+click Publish to re-open it.
       </p>
       <div class="gh-field"><label for="gh-in-token">Personal access token</label><input id="gh-in-token" type="password" data-k="ghToken" autocomplete="off" placeholder="github_pat_… or ghp_…" /></div>
       <div class="gh-field"><label for="gh-in-owner">Owner (user or org)</label><input id="gh-in-owner" type="text" data-k="ghOwner" placeholder="your-github-username" /></div>
@@ -1258,6 +1295,26 @@ function safeHttpsUrl(u) {
   }
 }
 
+async function pollUrlUntilLive(url, { timeoutMs = 120000, intervalMs = 3000, onTick } = {}) {
+  // GitHub Pages takes 10-60s to build a new file after a commit. Poll the URL
+  // (cache-busted) until it returns 200, so the Open button isn't enabled too early.
+  const deadline = Date.now() + timeoutMs;
+  let attempt = 0;
+  while (Date.now() < deadline) {
+    attempt++;
+    if (onTick) onTick(attempt);
+    try {
+      const bust = url + (url.includes('?') ? '&' : '?') + '_t=' + Date.now();
+      const resp = await fetch(bust, { method: 'GET', cache: 'no-store', redirect: 'follow' });
+      if (resp.ok) return { ok: true, attempt };
+    } catch (_) {
+      // Network/CORS errors — keep trying.
+    }
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+  return { ok: false, attempt };
+}
+
 function openGhResultModal({ pagesUrl, fileUrl, commitUrl }) {
   ensureModalStyles();
   const backdrop = document.createElement('div');
@@ -1269,7 +1326,7 @@ function openGhResultModal({ pagesUrl, fileUrl, commitUrl }) {
   backdrop.innerHTML = `
     <div class="gh-modal" role="dialog" aria-modal="true">
       <h2>Published</h2>
-      <p class="gh-hint">Your chart is live on GitHub. Pages can take 30-60 seconds to publish for the first time on a repo.</p>
+      <p class="gh-hint">The commit landed. Now waiting for GitHub Pages to build (10–60 s, first-time can be longer).</p>
       <div class="gh-field">
         <label>Public Pages URL</label>
         <code class="gh-result-url">${safePages}</code>
@@ -1279,14 +1336,18 @@ function openGhResultModal({ pagesUrl, fileUrl, commitUrl }) {
         ${safeFile && safeCommit ? ' &middot; ' : ''}
         ${safeCommit ? `<a href="${safeCommit}" target="_blank" rel="noopener">View commit</a>` : ''}
       </p>
+      <div class="gh-status" data-role="poll-status">Verifying Pages…</div>
       <div class="gh-actions">
         <button type="button" class="gh-btn gh-btn-secondary" data-action="copy">Copy URL</button>
-        <button type="button" class="gh-btn gh-btn-primary" data-action="open">Open page</button>
+        <button type="button" class="gh-btn gh-btn-primary" data-action="open" disabled>Open page (verifying…)</button>
         <button type="button" class="gh-btn gh-btn-secondary" data-action="close">Close</button>
       </div>
     </div>
   `;
   document.body.appendChild(backdrop);
+
+  const statusEl = backdrop.querySelector('[data-role=poll-status]');
+  const openBtn = backdrop.querySelector('[data-action=open]');
 
   function close() { backdrop.remove(); }
 
@@ -1304,7 +1365,32 @@ function openGhResultModal({ pagesUrl, fileUrl, commitUrl }) {
     }
   });
 
-  backdrop.querySelector('[data-action=open]').addEventListener('click', () => {
+  openBtn.addEventListener('click', () => {
+    if (openBtn.disabled) return;
     window.open(pagesUrl, '_blank', 'noopener');
   });
+
+  // Kick off the poll asynchronously so the modal renders first.
+  (async () => {
+    const t0 = Date.now();
+    const result = await pollUrlUntilLive(pagesUrl, {
+      timeoutMs: 120000,
+      intervalMs: 3000,
+      onTick: (n) => {
+        const elapsedS = Math.round((Date.now() - t0) / 1000);
+        statusEl.textContent = `Waiting for Pages… ${elapsedS}s (attempt ${n})`;
+      }
+    });
+    if (result.ok) {
+      statusEl.textContent = `Live (built in ~${Math.round((Date.now() - t0) / 1000)}s).`;
+      statusEl.className = 'gh-status success';
+      openBtn.disabled = false;
+      openBtn.textContent = 'Open page';
+    } else {
+      statusEl.textContent = 'Pages still not live after 2 minutes. The URL should work soon — try Open in a moment.';
+      statusEl.className = 'gh-status error';
+      openBtn.disabled = false;
+      openBtn.textContent = 'Open page (may 404)';
+    }
+  })();
 }
