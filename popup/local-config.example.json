@@ -1,0 +1,4 @@
+{
+  "_comment": "Copy this file to popup/local-config.json (gitignored) and paste your real Apify API token. The popup will auto-seed chrome.storage.sync on first load so you don't have to type it. Token from https://console.apify.com/account/integrations.",
+  "apifyApiKey": ""
+}

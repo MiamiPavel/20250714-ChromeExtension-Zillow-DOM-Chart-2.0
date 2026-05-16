@@ -21,3 +21,7 @@ Thumbs.db
 
 # Logs from local servers, smoke tests, etc.
 *.log
+
+# Personal Apify API key preset (auto-loaded by popup/apiKey.js on fresh
+# installs). Never commit a real token. See popup/local-config.example.json.
+popup/local-config.json
