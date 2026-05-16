@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "20250714 Zillow DOM Chart",
+  "description": "Extension to get price history from Zillow and show it as charts",
+  "version": "2.1",
+  "icons": {
+    "16": "logo/logo-16.png",
+    "48": "logo/logo-48.png",
+    "128": "logo/logo-128.png"
+  },
+  "action": {
+    "default_title": "Zillow DOM Chart",
+    "default_popup": "popup/popup.html"
+  },
+  "permissions": ["tabs", "downloads", "storage", "scripting", "offscreen", "unlimitedStorage"],
+  "host_permissions": ["*://*/*"],
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["chart.html"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

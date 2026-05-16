@@ -1,0 +1,16 @@
+- [x] Filter "Sold" listings data to show only history after the previous sale.
+- [x] Move chart vertical axis to the right side.
+- [x] Update version number in `manifest.json`.
+- [x] Invert horizontal axis for Sold listings (keep For Sale inverted).
+- [x] Add beeping sound when data gathering is done.
+- [x] Improve progress UI with a spinner.
+- [x] Add live "items scraped" counter to the "Getting Details" step.
+- [x] Filter out "Listing Removed" events from "For Sale" charts.
+- [x] Add retry logic for 502/network errors during Apify polling.
+- [x] Make scraping process persistent (background service worker) so it continues when popup closes.
+- [x] Add "Max Days on Market" filter to the chart page.
+- [x] Flip "Sold" chart lines to flow Left -> Right (Past -> Future) on the reversed axis.
+- [x] Fix storage quota exceeded error by adding `unlimitedStorage` permission.
+- [x] Add "Min Price Cuts" filter for "For Sale" charts.
+- [x] Fix issue where reducing filter values didn't work (by preserving `originalData`).
+- [x] Add "Clear Filters" button.

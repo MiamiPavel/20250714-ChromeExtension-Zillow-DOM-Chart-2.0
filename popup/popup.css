@@ -1,0 +1,93 @@
+body {
+    background: linear-gradient(135deg, #eceeef 0%, #c4c7ca 100%);
+    color: #242424;
+    font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    min-width: 20rem;
+    min-height: 12rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.card {  
+    box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+    padding: 1.5em;
+    width: 100%;
+    max-width: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+}
+
+header {
+    font-size: 1.4rem;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.02em;
+}
+
+button {
+    background: rgb(0, 106, 255);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.6rem 1.2rem;
+    min-width: 90px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    margin-right: 0.5rem;
+    margin-bottom: 0;
+    margin-top: 0;
+    display: inline-block;
+}
+button:last-child {
+    margin-right: 0;
+}
+button:hover {
+    background: rgb(0, 90, 220);
+}
+
+#resetApiKey {
+    background: #444;
+    color: #fff;
+    border: none;
+    margin-left: 0;
+    margin-right: 0;
+    transition: background 0.2s;
+}
+#resetApiKey:hover {
+    background: #222;
+}
+
+.input-button-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+input[type="text"] {
+    padding: 0.5rem;
+    border-radius: 6px;
+    border: 1px solid #444;
+    background: #232526;
+    color: #eee;
+    font-size: 1rem;
+    outline: none;
+    transition: border 0.2s;
+}
+input[type="text"]:focus {
+    border: 1.5px solid rgb(0, 106, 255);
+}
+
+label {
+    font-size: 0.98rem;
+    color: rgb(0, 106, 255);
+    margin-bottom: 0.2rem;
+}
+ 

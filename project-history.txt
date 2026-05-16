@@ -1,0 +1,8 @@
+[20260215 14:00:00] [BUG] Fixed filter reduction issue and added Clear Filters button
+- Problem: Reducing the "Min Days on Market" filter (e.g., 100 -> 50) didn't update the chart to show more properties. Listeners were being duplicated.
+- Solution: 
+  - Refactored `chart.js` to store `originalData` separately from `lastFilteredData`.
+  - Removed duplicate event listeners that were being added inside `window.loadFileContent`.
+  - Updated `applyFiltersAndRender` to always filter from `originalData` if available.
+  - Added a "Clear Filters" button to reset all inputs and restore the full chart.
+- Files modified: chart.html, chart.js, manifest.json (bumped version to 2.0)

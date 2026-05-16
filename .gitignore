@@ -1,0 +1,23 @@
+# Smoke-test artifacts and ad-hoc local scratch
+tmp/
+
+# Historical 2.3MB chart export with real property data — keep local only
+chart-export*.html
+
+# Internal project description doc — not for public repo
+*.docx
+
+# Local note with contractor email in the filename
+developer was *.txt
+
+# Editor / IDE state
+.cursor/
+.vscode/
+.idea/
+
+# OS junk
+Thumbs.db
+.DS_Store
+
+# Logs from local servers, smoke tests, etc.
+*.log

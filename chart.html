@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Price History Chart</title>
+  <link rel="stylesheet" href="chart.css">
+</head>
+<body>
+  <div id="chartPageWrapper">
+    <div id="chartCard" >
+      <div id="headerSection">
+        <header style="color: #222;">Price History Chart</header>
+        <div id="uploadSection">
+          <label for="fileUpload" style="color: #222;">Upload Price History File:</label>
+          <input type="file" id="fileUpload" accept=".csv" style="margin-top: 0.5rem;" />
+          <button id="uploadBtn" disabled style="margin-left: 0.7rem;">Upload</button>
+          <span id="uploadMsg" style="margin-left: 1rem; font-size: 0.98em;"></span>
+        </div>
+        <div style="margin-left:auto; display:flex; gap:0.5rem;">
+          <button id="exportHtmlBtn" style="background:#10b981; color:white; font-weight:600; border-radius:8px; padding:0.6rem 1.2rem; min-width:120px;">Export as HTML</button>
+          <button id="publishGhPagesBtn" title="Commit a self-contained chart HTML to your GitHub repo" style="background:#0f172a; color:white; font-weight:600; border-radius:8px; padding:0.6rem 1.2rem; min-width:160px;">Publish to GitHub Pages</button>
+        </div>
+      </div>
+      <div id="filterSection" style="display: flex; gap: 1.5rem; align-items: center; margin-bottom: 1rem;">
+        <label for="minDaysInput">Min Days on Market:</label>
+        <input type="number" id="minDaysInput" min="0" value="0" style="width: 80px; margin-right: 1.5rem;" />
+        <label for="maxDaysInput">Max Days on Market:</label>
+        <input type="number" id="maxDaysInput" min="0" value="0" style="width: 80px; margin-right: 1.5rem;" />
+        <label for="minPriceCutsInput">Min Price Cuts:</label>
+        <input type="number" id="minPriceCutsInput" min="0" value="0" style="width: 80px; margin-right: 1.5rem;" />
+        <label for="minDeclineInput">Min % Decline (oldest to newest):</label>
+        <input type="number" id="minDeclineInput" min="0" max="100" value="0" style="width: 80px;" />
+        <button id="clearFiltersBtn" style="margin-left: 1.5rem; padding: 0.3rem 0.8rem; cursor: pointer; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.9rem;">Clear Filters</button>
+        <span id="filterResultsCount" style="margin-left: 2rem; font-weight: 500;"></span>
+      </div>
+      <div id="chartContainer" style="display: none;">
+        <canvas id="priceChart" ></canvas>
+      </div>
+    </div>
+  </div>
+  <script src="lib/chart.umd.lib.js"></script>
+  <script src="lib/hammer.min.js"></script>
+  <script src="lib/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <script src="lib/chartjs-plugin-datalabels.min.js"></script>
+  <script src="lib/chartjs-plugin-zoom.min.js"></script>
+  <script src="lib/papaparse.min.js"></script>
+  <script src="chart.js"></script>
+  <script src="chart-upload.js"></script>
+</body>
+</html>

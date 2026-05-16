@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="popup.css">
+    <title>Zillow DOM Chart</title>
+</head>
+<body>
+    <div class="card">
+        <header>Zillow DOM Chart</header>
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+          <label id="apiKeyInputLabel" for="apiKeyInput">Enter Apify API Key:</label>
+          <input id="apiKeyInput" type="text" placeholder="Apify API Key" />
+          <div id="apiKeyMessage" style="min-height: 1.2em; font-size: 1.2em;"></div>
+          <div class="input-button-row">
+            <button id="saveApiKey">Save</button>
+            <button id="resetApiKey" style="display: none;">Reset</button>
+          </div>
+        </div>
+        <button id="openChart">Open Price History Charts</button>
+    </div>
+    <script src="../lib/jquery.min.js"></script>
+    <script src="../progressPopup.js"></script>
+    <script src="../apify-utils.js"></script>
+    <script src="../csv-utils.js"></script>
+    <script src="apiKey.js"></script>
+    <script src="popup.js"></script>
+</body>
+</html>
