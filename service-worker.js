@@ -58,8 +58,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.action === 'getChartData') {
-    sendResponse(pendingChartData || { data: null, searchUrl: null });
-    pendingChartData = null; // Clear after use
+    // If we have a pending scrape result, hand it over. Otherwise still return
+    // the most recent search URL so a manual CSV upload can show the banner.
+    if (pendingChartData) {
+      sendResponse(pendingChartData);
+      pendingChartData = null;
+    } else {
+      sendResponse({ data: null, searchUrl: lastSearchUrl });
+    }
+  }
+
+  if (message.action === 'rememberSearchUrl') {
+    // Sent by popup when opening the chart page without going through Get Data.
+    if (typeof message.url === 'string' && message.url) {
+      lastSearchUrl = message.url;
+    }
   }
 
   if (message.action === 'START_SCRAPE') {

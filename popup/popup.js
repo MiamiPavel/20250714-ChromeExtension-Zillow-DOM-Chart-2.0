@@ -1,4 +1,15 @@
-document.getElementById("openChart").addEventListener("click", () => {
+document.getElementById("openChart").addEventListener("click", async () => {
+  // Best-effort: remember the active tab's URL if it looks like a Zillow page.
+  // Lets the chart page display "Zillow Search URL: …" and bake it into the
+  // export, even when you skip Get Data and upload a CSV manually.
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab && typeof tab.url === 'string' && tab.url.includes('zillow.com')) {
+      chrome.runtime.sendMessage({ action: 'rememberSearchUrl', url: tab.url });
+    }
+  } catch (_) {
+    // tabs.query can fail in obscure cases; not worth blocking the open.
+  }
   chrome.tabs.create({ url: chrome.runtime.getURL("chart.html") });
 });
 

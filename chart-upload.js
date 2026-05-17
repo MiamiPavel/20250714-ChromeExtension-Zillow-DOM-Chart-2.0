@@ -67,12 +67,19 @@ window.addEventListener('load', () => {
     return;
   }
   // Extension mode: ask the service worker for any pending CSV passed via createChartTab.
+  // Even with no CSV, the service worker may return lastSearchUrl so manual uploads
+  // can still show the banner.
   if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
     chrome.runtime.sendMessage({ action: 'getChartData' }, (response) => {
-      if (response && response.data) {
-        if (typeof response.searchUrl === 'string' && response.searchUrl) {
-          window.zillowSearchUrl = response.searchUrl;
+      if (response && typeof response.searchUrl === 'string' && response.searchUrl) {
+        window.zillowSearchUrl = response.searchUrl;
+        // Refresh the banner in case the user already triggered a manual upload
+        // before this async callback resolved.
+        if (typeof window.updateZillowSearchUrlSection === 'function') {
+          window.updateZillowSearchUrlSection();
         }
+      }
+      if (response && response.data) {
         loadFileContent(response.data);
       }
     });
