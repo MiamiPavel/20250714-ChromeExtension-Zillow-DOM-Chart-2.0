@@ -1,25 +1,64 @@
 function downloadCSVWithAPI(data, filename = "data.csv") {
   const csvContent = formatArray(data);
 
-  // Create data URL instead of blob URL
-  const dataUrl =
-    "data:text/csv;charset=utf-8," + encodeURIComponent(csvContent);
+  // Blob URL, not a data: URL - Chrome caps URLs at 2 MB, and a 332-listing
+  // export is ~6 MB once percent-encoded, so a data: URL download fails.
+  const blobUrl = URL.createObjectURL(
+    new Blob([csvContent], { type: "text/csv;charset=utf-8" })
+  );
 
   chrome.downloads.download(
     {
-      url: dataUrl,
+      url: blobUrl,
       filename: filename,
       saveAs: false,
     },
     (downloadId) => {
-      console.log("Download started:", downloadId);
+      if (chrome.runtime.lastError) {
+        console.error("Download failed:", chrome.runtime.lastError.message);
+      } else {
+        console.log("Download started:", downloadId);
+      }
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
     }
   );
 }
 
+// maxcopell~zillow-detail-scraper renamed its output fields (seen 2026-09-30).
+// Map the new names back onto the old ones the CSV columns and chart read;
+// items already in the old shape pass through unchanged.
+function normalizeDetailItem(item) {
+  if (!item || item.priceHistory || !item.listingPriceHistory) return item;
+  const la = item.listingAddress || {};
+  const status = String(item.listingStatus || "");
+  return {
+    ...item,
+    priceHistory: item.listingPriceHistory.map((e) => ({
+      time: e.date,
+      event: e.event,
+      price: e.price,
+    })),
+    address: {
+      streetAddress: la.street,
+      city: la.city,
+      state: la.state,
+      zipcode: la.zipCode,
+    },
+    homeStatus: status.replace(/([a-z])([A-Z])/g, "$1_$2").toUpperCase(),
+    livingAreaValue: item.livingArea,
+    // mainImage is a string in search output, {hiRes, thumbnail} in detail output.
+    imgSrc:
+      item.imgSrc ||
+      (typeof item.mainImage === "string"
+        ? item.mainImage
+        : item.mainImage && (item.mainImage.hiRes || item.mainImage.thumbnail)),
+  };
+}
+
 function formatArray(array) {
   if (!Array.isArray(array) || array.length === 0) return "";
-  
+  array = array.map(normalizeDetailItem);
+
   const prioritizedKeys = [
     "address.streetAddress",
     "address.city", 
@@ -32,7 +71,7 @@ function formatArray(array) {
   function flatten(obj, prefix = "", out = {}) {
     for (const key in obj) {
       if (!Object.prototype.hasOwnProperty.call(obj, key)) continue;
-      if (key === "priceHistory" || (key.toLowerCase().includes("photos") && key !== "primaryPhoto")) continue;
+      if (key === "priceHistory" || key === "listingPriceHistory" ||(key.toLowerCase().includes("photos") && key !== "primaryPhoto")) continue;
       const value = obj[key];
       const fullKey = prefix ? `${prefix}.${key}` : key;
       if (value && typeof value === "object" && !Array.isArray(value)) {
