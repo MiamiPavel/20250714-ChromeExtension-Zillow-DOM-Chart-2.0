@@ -1,5 +1,4 @@
 const apiKeyInput = document.getElementById("apiKeyInput");
-const apiKeyInputLabel = document.getElementById("apiKeyInputLabel");
 const saveBtn = document.getElementById("saveApiKey");
 const resetBtn = document.getElementById("resetApiKey");
 const messageDiv = document.getElementById("apiKeyMessage");
@@ -9,17 +8,22 @@ function setMessage(msg, isError = false) {
   messageDiv.style.color = isError ? "#8a2c2c" : "#02753c";
 }
 
-function setSavedState(isSaved) {
-  if (isSaved) { 
-    apiKeyInputLabel.style.display = "none";
-    apiKeyInput.style.display = "none";
-    saveBtn.style.display = "none";
+function maskKey(key) {
+  return key && key.length > 4 ? "…" + key.slice(-4) : "";
+}
+
+// The key field always stays visible so the user can paste a new key over the
+// saved one; the saved key only shows as its last 4 characters.
+function setSavedState(isSaved, key = "") {
+  apiKeyInput.value = "";
+  if (isSaved) {
+    apiKeyInput.placeholder = `Saved key ${maskKey(key)} — paste a new key to change`;
+    saveBtn.textContent = "Update";
     resetBtn.style.display = "inline-block";
-    setMessage("API key saved.");
+    setMessage(`API key saved (${maskKey(key)}).`);
   } else {
-    apiKeyInputLabel.style.display = "block";
-    apiKeyInput.style.display = "block";
-    saveBtn.style.display = "inline-block";
+    apiKeyInput.placeholder = "Apify API Key";
+    saveBtn.textContent = "Save";
     resetBtn.style.display = "none";
     setMessage("");
   }
@@ -52,22 +56,22 @@ async function loadApiKey() {
     chrome.storage.sync.get(["apifyApiKey"], resolve)
   );
   if (stored.apifyApiKey) {
-    apiKeyInput.value = "********";
-    setSavedState(true);
+    setSavedState(true, stored.apifyApiKey);
     return;
   }
-  // No saved key yet. Check for a local preset before showing the empty form.
-  const localCfg = await loadOptionalLocalConfig();
+  // No saved key yet. Seed from the local preset only once, so a key the user
+  // reset or replaced is not silently restored from local-config.json.
+  const { apifyApiKeySeeded } = await chrome.storage.local.get(["apifyApiKeySeeded"]);
+  const localCfg = apifyApiKeySeeded ? null : await loadOptionalLocalConfig();
   if (localCfg && typeof localCfg.apifyApiKey === 'string' && localCfg.apifyApiKey) {
     await new Promise((resolve) =>
       chrome.storage.sync.set({ apifyApiKey: localCfg.apifyApiKey }, resolve)
     );
-    apiKeyInput.value = "********";
-    setSavedState(true);
+    await chrome.storage.local.set({ apifyApiKeySeeded: true });
+    setSavedState(true, localCfg.apifyApiKey);
     setMessage("Loaded API key from popup/local-config.json.");
     return;
   }
-  apiKeyInput.value = "";
   setSavedState(false);
 }
 
@@ -84,21 +88,18 @@ saveBtn.addEventListener("click", async () => {
     return;
   }
   chrome.storage.sync.set({ apifyApiKey: key }, () => {
-    setSavedState(true);
+    setSavedState(true, key);
   });
 });
 
 resetBtn.addEventListener("click", () => {
   chrome.storage.sync.remove(["apifyApiKey"], () => {
-    apiKeyInput.value = "";
     setSavedState(false);
   });
 });
 
-apiKeyInput.addEventListener("focus", () => {
-  if (apiKeyInput.value === "********") {
-    apiKeyInput.value = "";
-  }
+apiKeyInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") saveBtn.click();
 });
 
 // On load

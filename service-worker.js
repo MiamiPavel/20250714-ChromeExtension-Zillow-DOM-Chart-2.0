@@ -179,9 +179,17 @@ function getSearchResults(href) {
 
 function getDetails(data, onProgress) {
   return new Promise(async (resolve, reject) => {
-    const input = {
-      startUrls: data.results.map((result) => ({ url: result.detailUrl })),
-    };
+    // maxcopell~zillow-scraper renamed detailUrl -> propertyUrl (seen 2026-09-30);
+    // accept either so old and new output shapes both work.
+    const startUrls = data.results
+      .map((result) => result.propertyUrl || result.detailUrl)
+      .filter(Boolean)
+      .map((url) => ({ url }));
+    if (startUrls.length === 0) {
+      reject(new Error("Search returned no listing URLs (detailUrl/propertyUrl missing)"));
+      return;
+    }
+    const input = { startUrls };
     try {
       const result = await handleApifyRequest({
         action: "runApifyActor",
